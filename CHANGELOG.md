@@ -1,6 +1,7 @@
 # Master
 
 # 2.3.5
+- [ENHANCEMENT] Add `inlineSearchWithSelectedItem`. With search enabled and a selected-item component, the search field is yielded into that component's `searchInput` block and the trigger is removed from tab order. Selects that do not set the flag are unchanged.
 - [BUGFIX #1232] Could not find module ember-compatibility-helpers
 
 # 2.3.4
