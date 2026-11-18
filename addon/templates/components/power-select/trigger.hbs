@@ -1,7 +1,7 @@
 {{#if 
   (or 
     (and searchEnabled (not selectedItemComponent) (not allowRenderLikeSIC))
-    (and select.isOpen searchEnabled (or allowRenderLikeSIC selectedItemComponent))
+    (and select.isOpen searchEnabled (or allowRenderLikeSIC selectedItemComponent) (not inlineSearchWithSelectedItem))
   )
 }}
   {{#component "power-select/search-input"
@@ -41,7 +41,39 @@
     </span>
   {{/if}}
 {{else}}
-  {{#if select.selected}}
+  {{#if (and searchEnabled inlineSearchWithSelectedItem)}}
+    {{#let (component selectedItemComponent) as |SelectedItem|}}
+      <SelectedItem @searchEnabled={{searchEnabled}} @extra={{extra}} @option={{select.selected}} @select={{select}}>
+        <:searchInput>
+          {{component "power-select/search-input"
+            searchValue=searchValue
+            searchEnabled=searchEnabled
+            listboxId=listboxId
+            allowCreateOnBlur=allowCreateOnBlur
+            ariaActivedescendant=ariaActivedescendant
+            searchPlaceholder=searchPlaceholder
+            placeholder=placeholder
+            labelText=labelText
+            select=select
+            errorId=errorId
+            onInput=onInput
+            onFocus=onFocus
+            onBlur=onBlur
+            hasSIC=false
+            fieldId=fieldId
+            allowNull=allowNull
+            allowNullLabel=allowNullLabel
+            ariaDescribedBy=ariaDescribedBy
+            ariaLabel=ariaLabel
+            ariaLabelledBy=ariaLabelledBy
+            selectedItemComponent=selectedItemComponent
+            ariaLabelledById=ariaLabelledById
+            ariaRequired=ariaRequired
+            tabindex=tabindex}}
+        </:searchInput>
+      </SelectedItem>
+    {{/let}}
+  {{else if select.selected}}
     {{#if selectedItemComponent}}
       {{component selectedItemComponent searchEnabled=searchEnabled extra=(readonly extra) option=(readonly select.selected) select=(readonly select)}}
     {{else}}
