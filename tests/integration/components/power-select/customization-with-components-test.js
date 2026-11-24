@@ -331,7 +331,7 @@ module('Integration | Component | Ember Power Select (Customization using compon
   });
 
   test('inlineSearchWithSelectedItem yields the search input into the selected item component', async function(assert) {
-    assert.expect(7);
+    assert.expect(9);
 
     this.owner.register('component:inline-search-selected-item', Component.extend({
       layout: hbs`
@@ -365,6 +365,10 @@ module('Integration | Component | Ember Power Select (Customization using compon
     assert.dom('.inline-search-selected-item .ember-power-select-search-input-trigger').exists('The search input is rendered inside the selected item component while closed');
     assert.dom('.ember-power-select-trigger').hasAttribute('tabindex', '-1', 'The trigger is removed from tab order so the yielded input can take focus');
     assert.dom('.ember-power-select-dropdown').doesNotExist('The dropdown stays closed');
+
+    await focus('.ember-power-select-trigger');
+    assert.strictEqual(document.activeElement, document.querySelector('.inline-search-selected-item .ember-power-select-search-input-trigger'), 'Focus on the trigger moves into the yielded search input');
+    assert.dom('.ember-power-select-dropdown').doesNotExist('Focusing the yielded input does not open the dropdown');
 
     await fillIn('.inline-search-selected-item .ember-power-select-search-input-trigger', 'Port');
     assert.dom('.ember-power-select-dropdown').exists('Typing in the yielded input opens the dropdown');
