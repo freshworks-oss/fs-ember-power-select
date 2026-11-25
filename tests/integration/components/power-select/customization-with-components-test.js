@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
-import { render, click, focus } from '@ember/test-helpers';
+import { render, click, focus, fillIn } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 import { countries } from '../constants';
 import { groupedNumbers } from '../constants';
@@ -328,5 +328,89 @@ module('Integration | Component | Ember Power Select (Customization using compon
     `);
 
     assert.dom('.ember-power-select-trigger .cool-flag-icon').exists({ count: 1 }, 'The custom selectedItemComponent renders with the extra.coolFlagIcon customization option triggering some state change.');
+  });
+
+  test('inlineSearchWithSelectedItem yields the search input into the selected item component', async function(assert) {
+    assert.expect(9);
+
+    this.owner.register('component:inline-search-selected-item', Component.extend({
+      layout: hbs`
+        <div class="inline-search-selected-item">
+          {{#if (has-block "searchInput")}}
+            {{yield to="searchInput"}}
+          {{else if (has-block)}}
+            {{yield}}
+          {{else}}
+            <span class="selected-label">{{option.name}}</span>
+          {{/if}}
+        </div>
+      `
+    }));
+
+    this.countries = countries;
+    this.country = countries[1]; // Spain
+
+    await render(hbs`
+      {{#power-select
+        options=countries
+        selected=country
+        searchField="name"
+        selectedItemComponent="inline-search-selected-item"
+        inlineSearchWithSelectedItem=true
+        onchange=(action (mut foo)) as |country|}}
+        {{country.name}}
+      {{/power-select}}
+    `);
+
+    assert.dom('.inline-search-selected-item .ember-power-select-search-input-trigger').exists('The search input is rendered inside the selected item component while closed');
+    assert.dom('.ember-power-select-trigger').hasAttribute('tabindex', '-1', 'The trigger is removed from tab order so the yielded input can take focus');
+    assert.dom('.ember-power-select-dropdown').doesNotExist('The dropdown stays closed');
+
+    await focus('.ember-power-select-trigger');
+    assert.strictEqual(document.activeElement, document.querySelector('.inline-search-selected-item .ember-power-select-search-input-trigger'), 'Focus on the trigger moves into the yielded search input');
+    assert.dom('.ember-power-select-dropdown').doesNotExist('Focusing the yielded input does not open the dropdown');
+
+    await fillIn('.inline-search-selected-item .ember-power-select-search-input-trigger', 'Port');
+    assert.dom('.ember-power-select-dropdown').exists('Typing in the yielded input opens the dropdown');
+    assert.dom('.ember-power-select-option').exists({ count: 1 }, 'Options are filtered from the yielded input');
+    assert.dom('.ember-power-select-option').hasText('Portugal');
+    assert.dom('.ember-power-select-trigger .ember-power-select-search-input-trigger').exists({ count: 1 }, 'Opening does not render a second search input in the trigger');
+  });
+
+  test('selectedItemComponent keeps the closed-state label when inlineSearchWithSelectedItem is not set', async function(assert) {
+    assert.expect(3);
+
+    this.owner.register('component:inline-search-selected-item', Component.extend({
+      layout: hbs`
+        <div class="inline-search-selected-item">
+          {{#if (has-block "searchInput")}}
+            {{yield to="searchInput"}}
+          {{else if (has-block)}}
+            {{yield}}
+          {{else}}
+            <span class="selected-label">{{option.name}}</span>
+          {{/if}}
+        </div>
+      `
+    }));
+
+    this.countries = countries;
+    this.country = countries[1]; // Spain
+
+    await render(hbs`
+      {{#power-select
+        options=countries
+        selected=country
+        selectedItemComponent="inline-search-selected-item"
+        onchange=(action (mut foo)) as |country|}}
+        {{country.name}}
+      {{/power-select}}
+    `);
+
+    assert.dom('.inline-search-selected-item .selected-label').hasText('Spain', 'The selected item component renders the selection');
+    assert.dom('.ember-power-select-search-input-trigger').doesNotExist('No search input is rendered while the dropdown is closed');
+
+    await clickTrigger();
+    assert.dom('.ember-power-select-trigger .ember-power-select-search-input-trigger').exists('Opening still renders the search input in the trigger');
   });
 });

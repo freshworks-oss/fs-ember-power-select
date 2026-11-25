@@ -157,7 +157,10 @@ export default Component.extend({
     return !this.get('hasSIC') && this.get('searchEnabled') && !this.get('multiSelect');
   }),
 
-  computedTabIndex: computed('tabindex', 'searchEnabled', function() {
+  computedTabIndex: computed('tabindex', 'searchEnabled', 'inlineSearchWithSelectedItem', function() {
+    if (this.get('inlineSearchWithSelectedItem') && this.get('searchEnabled') && !this.get('multiSelect')) {
+      return '-1';
+    }
     if(this.get('multiSelect')) {
       return '-1';
     } else if(this.get('searchEnabled')) {
@@ -378,7 +381,7 @@ export default Component.extend({
       if (action) {
         correctedTerm = action(term, publicAPI, e);
         if (correctedTerm === false) {
-          // for auto-complete fields with or withour url search, when dropdown is closed but input still has focus & 
+          // for auto-complete fields with or withour url search, when dropdown is closed but input still has focus &
           // when a char is typed, dropdown opens but input loses typed char. To retain that below logic is required
           if(term.length === 1 && !publicAPI.isOpen && this.get('searchEnabled') && this.get('mustShowSearchMessage')) {
             this.updateState({ searchText: term, lastSearchedText: term, loading: false });
@@ -512,6 +515,11 @@ export default Component.extend({
     },
 
     onTriggerFocus(_, event) {
+      // The trigger stays in the DOM at tabindex -1 so the yielded search input is the tab stop.
+      // A click or programmatic focus on the trigger still lands here; move it into that input.
+      if (this._focusInlineSearchInput(event)) {
+        return;
+      }
       this.send('activate');
       let action = this.get('onfocus');
       if (action) {
@@ -687,6 +695,18 @@ export default Component.extend({
   }).restartable(),
 
   // Methods
+  _focusInlineSearchInput(event) {
+    if (!this.get('inlineSearchWithSelectedItem') || !this.get('searchEnabled') || this.get('multiSelect')) {
+      return false;
+    }
+    let input = document.querySelector(`[data-id="ember-power-select-search-input-trigger-${this.get('publicAPI.uniqueId')}"]`);
+    if (!input || (event && event.target === input)) {
+      return false;
+    }
+    input.focus();
+    return true;
+  },
+
   focusInput() {
     if(this.get('multiSelect')) {
       let input = document.querySelector(`[data-id="ember-power-select-trigger-multiple-input-${this.get('publicAPI.uniqueId')}"]`);
@@ -854,10 +874,10 @@ export default Component.extend({
 
   _performFilter(term) {
     let results = this.filter(this.get('publicAPI').options, term);
-    this.updateState({ 
-      results, 
-      searchText: term, 
-      lastSearchedText: term, 
+    this.updateState({
+      results,
+      searchText: term,
+      lastSearchedText: term,
       resultsCount: countOptions(results)
     });
     this.resetHighlighted();
@@ -892,7 +912,7 @@ export default Component.extend({
     if (e.keyCode === 38 || e.keyCode === 40) { // Up & Down
       return this._handleKeyUpDown(e);
     } else if (e.keyCode === 13) {  // ENTER
-      // after moving to inline search, enter is submitting the form, as we have cmd+enter behaviour, 
+      // after moving to inline search, enter is submitting the form, as we have cmd+enter behaviour,
       // ignoring this as per addon behaviour
       e.preventDefault();
       return this._handleKeyEnter(e);
@@ -900,7 +920,7 @@ export default Component.extend({
       this._handleKeyEnter(e);
       return this._handleKeyTab(e);
     } else if (e.keyCode === 27) {  // ESC
-      // after moving to inline search, pressing escape caused the input to be cleared 
+      // after moving to inline search, pressing escape caused the input to be cleared
       // so added prevent default to avoid clearing the input
       e.preventDefault()
       return this._handleKeyESC(e);
